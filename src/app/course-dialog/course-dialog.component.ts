@@ -3,8 +3,8 @@ import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import {Course} from "../model/course";
 import {FormBuilder, Validators, FormGroup} from "@angular/forms";
 import * as moment from 'moment';
-import {fromEvent} from 'rxjs';
-import {concatMap, distinctUntilChanged, exhaustMap, filter, mergeMap} from 'rxjs/operators';
+import {Observable, fromEvent} from 'rxjs';
+import {concatMap, debounceTime, distinctUntilChanged, exhaustMap, filter, map, mergeMap, tap} from 'rxjs/operators';
 import {fromPromise} from 'rxjs/internal-compatibility';
 
 @Component({
@@ -20,6 +20,8 @@ export class CourseDialogComponent implements OnInit, AfterViewInit {
     @ViewChild('saveButton', { static: true }) saveButton: ElementRef;
 
     @ViewChild('searchInput', { static: true }) searchInput : ElementRef;
+
+    formChanged$ : Observable<any>
 
     constructor(
         private fb: FormBuilder,
@@ -39,6 +41,19 @@ export class CourseDialogComponent implements OnInit, AfterViewInit {
 
     ngOnInit() {
 
+       this.form.valueChanges.pipe(
+        tap(
+            console.log
+        ),
+        debounceTime(1000),
+        distinctUntilChanged(),
+        concatMap(
+            changes => this.putRequest()
+        ),
+       ).subscribe(
+        
+       )
+
 
 
     }
@@ -50,6 +65,19 @@ export class CourseDialogComponent implements OnInit, AfterViewInit {
 
     }
 
+    
+    putRequest(){
+        return  fromPromise(
+            fetch(`http://localhost:9000/api/courses/${this.course.id}`,
+        {
+            method: 'PUT',
+            headers: {
+                'Content-type':'application/json'
+            },
+            body: JSON.stringify(this.form.value)
+        })
+        )
+    }
 
 
     close() {
