@@ -42,12 +42,9 @@ export class CourseComponent implements OnInit, AfterViewInit {
 
     ngOnInit() {
         this.course$ = createHttpObservable(`http://localhost:9000/api/courses/${this.courseId}`);
-
-        
-
     }
 
-    loadLessons(search = '') {
+    loadLessons(search = ''): Observable<Lesson[]> {
         return createHttpObservable(`http://localhost:9000/api/lessons/?courseId=${this.courseId}&pageSize=100&filter=${search}`).pipe(
             map(
                 response => response["payload"]
@@ -57,12 +54,13 @@ export class CourseComponent implements OnInit, AfterViewInit {
 
     ngAfterViewInit() {
 
-        const initialLessons$ = this.loadLessons('');
+       
 
-        const searchLessons$ = fromEvent<any>(this.input.nativeElement, 'keyup').pipe(
+        this.lessons$ = fromEvent<any>(this.input.nativeElement, 'keyup').pipe(
             map(
                 event => event.target.value
             ),
+            startWith(''),
             debounceTime(400),
             distinctUntilChanged(),
             switchMap(
@@ -71,15 +69,9 @@ export class CourseComponent implements OnInit, AfterViewInit {
 
         );
 
-        this.lessons$ = concat(initialLessons$, searchLessons$);
-
         //this concat operaton makes sure that once the initiall lessons (all lessons) are rendered only after that
         // the filtering mechanism kicks in using searchLessons$
 
 
     }
-
-
-
-
 }
