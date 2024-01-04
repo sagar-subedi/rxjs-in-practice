@@ -16,6 +16,7 @@ import {
 import { merge, fromEvent, Observable, concat, of } from 'rxjs';
 import { Lesson } from '../model/lesson';
 import { createHttpObservable } from '../util/util';
+import { searchLessons } from './../../../server/search-lessons.route';
 
 
 @Component({
@@ -42,9 +43,23 @@ export class CourseComponent implements OnInit, AfterViewInit {
     ngOnInit() {
         this.course$ = createHttpObservable(`http://localhost:9000/api/courses/${this.courseId}`);
 
-        this.lessons$ = this.loadLessons('');
+        
 
-        fromEvent<any>(this.input.nativeElement, 'keyup').pipe(
+    }
+
+    loadLessons(search = '') {
+        return createHttpObservable(`http://localhost:9000/api/lessons/?courseId=${this.courseId}&pageSize=100&filter=${search}`).pipe(
+            map(
+                response => response["payload"]
+            )
+        );
+    }
+
+    ngAfterViewInit() {
+
+        const initialLessons$ = this.loadLessons('');
+
+        const searchLessons$ = fromEvent<any>(this.input.nativeElement, 'keyup').pipe(
             map(
                 event => event.target.value
             ),
@@ -54,26 +69,12 @@ export class CourseComponent implements OnInit, AfterViewInit {
                 (search) => this.loadLessons(search)
             )
 
-        ).subscribe(() => {
-
-        }
-        )
-
-    }
-
-    loadLessons(search = '') {
-        const lessons$ = createHttpObservable(`http://localhost:9000/api/lessons/?courseId=${this.courseId}&pageSize=100&filter=${search}`).pipe(
-            map(
-                response => response["payload"]
-            )
         );
-        this.lessons$ = lessons$;
-        return lessons$;
-    }
 
-    ngAfterViewInit() {
+        this.lessons$ = concat(initialLessons$, searchLessons$);
 
-
+        //this concat operaton makes sure that once the initiall lessons (all lessons) are rendered only after that
+        // the filtering mechanism kicks in using searchLessons$
 
 
     }
